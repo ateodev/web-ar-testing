@@ -7,7 +7,7 @@
   </head>
   <body style="text-align: center; padding: 0; border: 0; margin: 0; overflow: hidden;">
     <canvas id="unity-canvas" style="width: 100%; height: 100%; background: #231F20"></canvas>
-    <script src="Build/Bernina Express.loader.js"></script>
+    <script src="Build/public.loader.js"></script>
     <script>
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
@@ -38,7 +38,7 @@
       onResize();
 
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/55ef3a335208b4008bdf8f409190c581.data",
+        dataUrl: "Build/f8073776eb2020aafedf6a70bd388237.data",
         frameworkUrl: "Build/20488e9c28389a06d6512c3779fbadb1.js",
         codeUrl: "Build/00052d7603fde0191319d9d40b100d7a.wasm",
         streamingAssetsUrl: "StreamingAssets",
