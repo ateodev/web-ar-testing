@@ -354,8 +354,8 @@ Module["MindARImage"] = {
 
         console.log(`MindARImage -> cancellationToken -> create`);
         var token = new EventTarget();
-        token.cancellationRequested: false;
-        token.cancel: function () {
+        token.cancellationRequested = false;
+        token.cancel = function () {
             console.log(`MindARImage -> cancellationToken -> cancel`);
             this.cancellationRequested = true;
             token.dispatchEvent(new CustomEvent('cancel'))
