@@ -399,11 +399,15 @@ Module["MindARImage"] = {
                 }
             })
                 .then(stream => {
+                    console.log(`MindARImage -> startVideo -> stream resolved`);
+                    
                     let video = document.createElement('video');
                     video.playsInline = true;
                     video.srcObject = stream;
                     
                     video.addEventListener('loadedmetadata', () => {
+                        console.log(`MindARImage -> startVideo -> loadedmetadata`);
+                        
                         video.play();
                         video.width = this.video.videoWidth;
                         video.height = this.video.videoHeight;
@@ -412,12 +416,13 @@ Module["MindARImage"] = {
                     });
 
                     token.addEventListener('cancel', () => {
+                        console.log(`MindARImage -> startVideo -> cancel`);
+                        
                         const tracks = this.video.srcObject.getTracks();
                         tracks.forEach(function (track) {
                             track.stop();
                         });
                         video.remove();
-                        video = null;
                     })
                 });
         });
