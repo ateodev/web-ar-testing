@@ -510,13 +510,15 @@ Module["MindARImage"] = {
         const onResize = () => {
             console.log(`MinARImage -> onResize`);
             
+            if(!this.controller) return;
+            
             this.video.width = this.video.videoWidth;
             this.video.height = this.video.videoHeight;
 
-            const controllerProjectionMatrix = controller.getProjectionMatrix();
+            const controllerProjectionMatrix = this.controller.getProjectionMatrix();
 
             // Handle when phone is rotated, video width and height are swapped
-            const fovAdjust = this.video.width / controller.inputWidth;
+            const fovAdjust = this.video.width / this.controller.inputWidth;
 
             const far = controllerProjectionMatrix[14] / (controllerProjectionMatrix[10] + 1.0);
             const near = controllerProjectionMatrix[14] / (controllerProjectionMatrix[10] - 1.0);
@@ -538,7 +540,7 @@ Module["MindARImage"] = {
 
         onResize();
 
-        controller.processVideo(input);
+        this.controller.processVideo(input);
     },
 
     GetCameraParamsPtr() {
