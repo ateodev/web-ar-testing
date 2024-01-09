@@ -344,11 +344,12 @@ Module["MindARImage"] = {
     TextureUpdate: function (tex) {
         this.texPtr = tex;
     },
-    
+
     CancelToken: function () {
         this.cancellationToken?.cancel();
+        this.cancellationToken = null;
     },
-    
+
     RefreshToken: function () {
         this.cancellationToken?.cancel();
 
@@ -365,11 +366,9 @@ Module["MindARImage"] = {
     },
 
     StartAR: async function () {
-        if(this.isRunning) return;
-        
-        var token = this.RefreshToken();
+        const token = this.RefreshToken();
         await this.GetExternalJS();
-        await this.StartVideo(token);
+        await this.StartVideo();
         await this.StartMindAR(token);
         this.isRunning = true;
 
@@ -379,18 +378,23 @@ Module["MindARImage"] = {
     },
 
     StopAR: function () {
-        if (!this.isRunning) return;
-        
-        this.isRunning = false;
-        this.controller.stopProcessVideo();
         this.CancelToken();
+        if (!this.isRunning) return;
+
+        this.controller.stopProcessVideo();
+
+        const tracks = this.video.srcObject.getTracks();
+        tracks.forEach(function (track) {
+            track.stop();
+        });
+        this.video.remove();
     },
 
     IsRunning: function () {
         return this.isRunning;
     },
 
-    StartVideo: function (token) {
+    StartVideo: function () {
         //navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: FacingModes[this.facingMode]}})
         return new Promise((resolve) => {
             navigator.mediaDevices.getUserMedia({
@@ -399,75 +403,53 @@ Module["MindARImage"] = {
                 }
             })
                 .then(stream => {
-                    console.log(`MindARImage -> startVideo -> stream resolved`);
-                    
-                    let video = document.createElement('video');
-                    video.playsInline = true;
-                    video.srcObject = stream;
-                    
-                    video.addEventListener('loadedmetadata', () => {
-                        console.log(`MindARImage -> startVideo -> loadedmetadata`);
-                        
-                        video.play();
-                        video.width = video.videoWidth;
-                        video.height = video.videoHeight;
-                        this.video = video;
+                    this.video = document.createElement('video');
+                    this.video.playsInline = true;
+                    this.video.srcObject = stream;
+                    this.video.addEventListener('loadedmetadata', () => {
+                        this.video.play();
+                        this.video.width = this.video.videoWidth;
+                        this.video.height = this.video.videoHeight;
+                        //this._setupAR(this.video);
                         resolve();
                     });
-
-                    token.addEventListener('cancel', () => {
-                        console.log(`MindARImage -> startVideo -> cancel`);
-                        
-                        const tracks = this.video.srcObject.getTracks();
-                        tracks.forEach(function (track) {
-                            track.stop();
-                        });
-                        video.remove();
-                    })
                 });
         });
     },
 
     StartMindAR: async function (token) {
         const input = this.video;
-        
-        if(!this.controller)
-        {
-            const controller = new window.MINDAR.IMAGE.Controller({
-                inputWidth: input.width,
-                inputHeight: input.height,
-                // maxTrack: this.maxTrack,
-                // filterMinCF: 0.001, // OneEuroFilter, min cutoff frequency. default is 0.001
-                // filterBeta: 0.001, // OneEuroFilter, beta. default is 1000
-                maxTrack: this.maxTrack,
-                filterMinCF: this.filterMinCF, // OneEuroFilter, min cutoff frequency. default is 0.001
-                filterBeta: this.filterBeta, // OneEuroFilter, beta. default is 1000
-                missTolerance: this.missTolerance, // number of miss before considered target lost. default is 5
-                warmupTolerance: this.warmupTolerance, // number of track before considered target found. default is 5
-    
-                onUpdate: (data) => {
-                    if (data.type === 'updateMatrix') {
-                        const {targetIndex, worldMatrix} = data;
-    
-                        if (worldMatrix == null) {
-                            HEAPF32.set(this.invisibleMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
-                        } else {
-                            HEAPF32.set(worldMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
-                        }
-    
-                        if (this.onUpdatePtr) {
-                            Module.dynCall_vii(this.onUpdatePtr, targetIndex, worldMatrix == null ? 0 : 1);
-                        }
-                    }
-                },
-            });
-    
-            this.controller = controller;
-            
-            const {dimensions} = await controller.addImageTargets(this.mindFilePath);
-            this.markerDimensions = dimensions;
-        }
 
+        const controller = new window.MINDAR.IMAGE.Controller({
+            inputWidth: input.width,
+            inputHeight: input.height,
+            // maxTrack: this.maxTrack,
+            // filterMinCF: 0.001, // OneEuroFilter, min cutoff frequency. default is 0.001
+            // filterBeta: 0.001, // OneEuroFilter, beta. default is 1000
+            maxTrack: this.maxTrack,
+            filterMinCF: this.filterMinCF, // OneEuroFilter, min cutoff frequency. default is 0.001
+            filterBeta: this.filterBeta, // OneEuroFilter, beta. default is 1000
+            missTolerance: this.missTolerance, // number of miss before considered target lost. default is 5
+            warmupTolerance: this.warmupTolerance, // number of track before considered target found. default is 5
+
+            onUpdate: (data) => {
+                if (data.type === 'updateMatrix') {
+                    const {targetIndex, worldMatrix} = data;
+
+                    if (worldMatrix == null) {
+                        HEAPF32.set(this.invisibleMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
+                    } else {
+                        HEAPF32.set(worldMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
+                    }
+
+                    if (this.onUpdatePtr) {
+                        Module.dynCall_vii(this.onUpdatePtr, targetIndex, worldMatrix == null ? 0 : 1);
+                    }
+                }
+            },
+        });
+
+        this.controller = controller;
 
         // const controllerProjectionMatrix = controller.getProjectionMatrix();
 
@@ -476,16 +458,15 @@ Module["MindARImage"] = {
         // const fov = 2 * Math.atan(1 / controllerProjectionMatrix[5]) * 180 / Math.PI;
         // const aspect = controllerProjectionMatrix[5] / controllerProjectionMatrix[0];
 
-        if(!this.memory)
-        {
-            this.memory.cameraParamsPtr = _malloc(4 * 4);
-            // HEAPF32.set([fov, aspect, near, far], this.memory.cameraParamsPtr >> 2);
-            
-            this.memory.targetMatrixPtrs = [];
-            for (let i = 0; i < dimensions.length; i++) {
-                this.memory.targetMatrixPtrs[i] = _malloc(16 * 4);
-            }
-            
+        this.memory.cameraParamsPtr = _malloc(4 * 4);
+        // HEAPF32.set([fov, aspect, near, far], this.memory.cameraParamsPtr >> 2);
+
+        const {dimensions} = await controller.addImageTargets(this.mindFilePath);
+        this.markerDimensions = dimensions;
+
+        this.memory.targetMatrixPtrs = [];
+        for (let i = 0; i < dimensions.length; i++) {
+            this.memory.targetMatrixPtrs[i] = _malloc(16 * 4);
         }
 
         let frameNumber = 0;
@@ -510,15 +491,13 @@ Module["MindARImage"] = {
         const onResize = () => {
             console.log(`MinARImage -> onResize`);
             
-            if(!this.controller) return;
-            
             this.video.width = this.video.videoWidth;
             this.video.height = this.video.videoHeight;
 
-            const controllerProjectionMatrix = this.controller.getProjectionMatrix();
+            const controllerProjectionMatrix = controller.getProjectionMatrix();
 
             // Handle when phone is rotated, video width and height are swapped
-            const fovAdjust = this.video.width / this.controller.inputWidth;
+            const fovAdjust = this.video.width / controller.inputWidth;
 
             const far = controllerProjectionMatrix[14] / (controllerProjectionMatrix[10] + 1.0);
             const near = controllerProjectionMatrix[14] / (controllerProjectionMatrix[10] - 1.0);
@@ -530,17 +509,11 @@ Module["MindARImage"] = {
                 Module.dynCall_v(this.onCameraConfigChangePtr);
             }
         }
-        
         window.addEventListener('resize', onResize);
-        
-        token.addEventListener('cancel', () => {
-            console.log(`MinARImage -> onResize -> cancel`);
-            window.removeEventListener('resize', onResize);
-        })
 
         onResize();
 
-        this.controller.processVideo(input);
+        controller.processVideo(input);
     },
 
     GetCameraParamsPtr() {
