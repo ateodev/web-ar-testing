@@ -344,8 +344,28 @@ Module["MindARImage"] = {
     TextureUpdate: function (tex) {
         this.texPtr = tex;
     },
+    
+    CancelToken: function () {
+        this.cancellationToken?.cancel();
+    },
+    
+    RefreshToken: function () {
+        this.cancellationToken?.cancel();
+
+        console.log(`MindARImage -> cancellationToken -> create`);
+        var token = new EventTarget();
+        token.cancellationRequested: false;
+        token.cancel: function () {
+            console.log(`MindARImage -> cancellationToken -> cancel`);
+            this.cancellationRequested = true;
+            token.dispatchEvent(new CustomEvent('cancel'))
+        }
+        this.cancellationToken = token;
+        return token;
+    }
 
     StartAR: async function () {
+        var token = this.RefreshToken();
         await this.GetExternalJS();
         await this.StartVideo();
         await this.StartMindAR();
@@ -366,6 +386,9 @@ Module["MindARImage"] = {
             track.stop();
         });
         this.video.remove();
+        this.video = null;
+        
+        this.CancelToken();
     },
 
     IsRunning: function () {
@@ -395,39 +418,46 @@ Module["MindARImage"] = {
         });
     },
 
-    StartMindAR: async function () {
+    StartMindAR: async function (token) {
         const input = this.video;
-
-        const controller = new window.MINDAR.IMAGE.Controller({
-            inputWidth: input.width,
-            inputHeight: input.height,
-            // maxTrack: this.maxTrack,
-            // filterMinCF: 0.001, // OneEuroFilter, min cutoff frequency. default is 0.001
-            // filterBeta: 0.001, // OneEuroFilter, beta. default is 1000
-            maxTrack: this.maxTrack,
-            filterMinCF: this.filterMinCF, // OneEuroFilter, min cutoff frequency. default is 0.001
-            filterBeta: this.filterBeta, // OneEuroFilter, beta. default is 1000
-            missTolerance: this.missTolerance, // number of miss before considered target lost. default is 5
-            warmupTolerance: this.warmupTolerance, // number of track before considered target found. default is 5
-
-            onUpdate: (data) => {
-                if (data.type === 'updateMatrix') {
-                    const {targetIndex, worldMatrix} = data;
-
-                    if (worldMatrix == null) {
-                        HEAPF32.set(this.invisibleMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
-                    } else {
-                        HEAPF32.set(worldMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
+        
+        if(!this.controller)
+        {
+            const controller = new window.MINDAR.IMAGE.Controller({
+                inputWidth: input.width,
+                inputHeight: input.height,
+                // maxTrack: this.maxTrack,
+                // filterMinCF: 0.001, // OneEuroFilter, min cutoff frequency. default is 0.001
+                // filterBeta: 0.001, // OneEuroFilter, beta. default is 1000
+                maxTrack: this.maxTrack,
+                filterMinCF: this.filterMinCF, // OneEuroFilter, min cutoff frequency. default is 0.001
+                filterBeta: this.filterBeta, // OneEuroFilter, beta. default is 1000
+                missTolerance: this.missTolerance, // number of miss before considered target lost. default is 5
+                warmupTolerance: this.warmupTolerance, // number of track before considered target found. default is 5
+    
+                onUpdate: (data) => {
+                    if (data.type === 'updateMatrix') {
+                        const {targetIndex, worldMatrix} = data;
+    
+                        if (worldMatrix == null) {
+                            HEAPF32.set(this.invisibleMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
+                        } else {
+                            HEAPF32.set(worldMatrix, this.memory.targetMatrixPtrs[targetIndex] >> 2);
+                        }
+    
+                        if (this.onUpdatePtr) {
+                            Module.dynCall_vii(this.onUpdatePtr, targetIndex, worldMatrix == null ? 0 : 1);
+                        }
                     }
+                },
+            });
+    
+            this.controller = controller;
+            
+            const {dimensions} = await controller.addImageTargets(this.mindFilePath);
+            this.markerDimensions = dimensions;
+        }
 
-                    if (this.onUpdatePtr) {
-                        Module.dynCall_vii(this.onUpdatePtr, targetIndex, worldMatrix == null ? 0 : 1);
-                    }
-                }
-            },
-        });
-
-        this.controller = controller;
 
         // const controllerProjectionMatrix = controller.getProjectionMatrix();
 
@@ -436,21 +466,22 @@ Module["MindARImage"] = {
         // const fov = 2 * Math.atan(1 / controllerProjectionMatrix[5]) * 180 / Math.PI;
         // const aspect = controllerProjectionMatrix[5] / controllerProjectionMatrix[0];
 
-        this.memory.cameraParamsPtr = _malloc(4 * 4);
-        // HEAPF32.set([fov, aspect, near, far], this.memory.cameraParamsPtr >> 2);
-
-        const {dimensions} = await controller.addImageTargets(this.mindFilePath);
-        this.markerDimensions = dimensions;
-
-        this.memory.targetMatrixPtrs = [];
-        for (let i = 0; i < dimensions.length; i++) {
-            this.memory.targetMatrixPtrs[i] = _malloc(16 * 4);
+        if(!this.memory)
+        {
+            this.memory.cameraParamsPtr = _malloc(4 * 4);
+            // HEAPF32.set([fov, aspect, near, far], this.memory.cameraParamsPtr >> 2);
+            
+            this.memory.targetMatrixPtrs = [];
+            for (let i = 0; i < dimensions.length; i++) {
+                this.memory.targetMatrixPtrs[i] = _malloc(16 * 4);
+            }
+            
         }
 
         let frameNumber = 0;
         const drawWebcamTexture = () => {
-            if (this.video === null) {
-                console.log(`MinARImage -> drawWebcamTexture -> stop`);
+            if(token.cancellationRequested) {
+                console.log(`MinARImage -> drawWebcamTexture -> cancel`);
                 return;
             }
 
@@ -487,7 +518,13 @@ Module["MindARImage"] = {
                 Module.dynCall_v(this.onCameraConfigChangePtr);
             }
         }
+        
         window.addEventListener('resize', onResize);
+        
+        token.addEventListener('cancel', () => {
+            console.log(`MinARImage -> onResize -> cancel`);
+            window.removeEventListener('resize', onResize);
+        })
 
         onResize();
 
