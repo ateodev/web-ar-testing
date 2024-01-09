@@ -362,7 +362,7 @@ Module["MindARImage"] = {
         }
         this.cancellationToken = token;
         return token;
-    }
+    },
 
     StartAR: async function () {
         var token = this.RefreshToken();
