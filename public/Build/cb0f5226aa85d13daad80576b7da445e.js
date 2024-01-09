@@ -365,10 +365,12 @@ Module["MindARImage"] = {
     },
 
     StartAR: async function () {
+        if(this.isRunning) return;
+        
         var token = this.RefreshToken();
         await this.GetExternalJS();
-        await this.StartVideo();
-        await this.StartMindAR();
+        await this.StartVideo(token);
+        await this.StartMindAR(token);
         this.isRunning = true;
 
         if (this.onStartARPtr) {
@@ -378,16 +380,9 @@ Module["MindARImage"] = {
 
     StopAR: function () {
         if (!this.isRunning) return;
-
-        this.controller.stopProcessVideo();
-
-        const tracks = this.video.srcObject.getTracks();
-        tracks.forEach(function (track) {
-            track.stop();
-        });
-        this.video.remove();
-        this.video = null;
         
+        this.isRunning = false;
+        this.controller.stopProcessVideo();
         this.CancelToken();
     },
 
@@ -395,7 +390,7 @@ Module["MindARImage"] = {
         return this.isRunning;
     },
 
-    StartVideo: function () {
+    StartVideo: function (token) {
         //navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: FacingModes[this.facingMode]}})
         return new Promise((resolve) => {
             navigator.mediaDevices.getUserMedia({
@@ -404,16 +399,26 @@ Module["MindARImage"] = {
                 }
             })
                 .then(stream => {
-                    this.video = document.createElement('video');
-                    this.video.playsInline = true;
-                    this.video.srcObject = stream;
-                    this.video.addEventListener('loadedmetadata', () => {
-                        this.video.play();
-                        this.video.width = this.video.videoWidth;
-                        this.video.height = this.video.videoHeight;
-                        //this._setupAR(this.video);
+                    let video = document.createElement('video');
+                    video.playsInline = true;
+                    video.srcObject = stream;
+                    
+                    video.addEventListener('loadedmetadata', () => {
+                        video.play();
+                        video.width = this.video.videoWidth;
+                        video.height = this.video.videoHeight;
+                        this.video = video;
                         resolve();
                     });
+
+                    token.addEventListener('cancel', () => {
+                        const tracks = this.video.srcObject.getTracks();
+                        tracks.forEach(function (track) {
+                            track.stop();
+                        });
+                        video.remove();
+                        video = null;
+                    })
                 });
         });
     },
