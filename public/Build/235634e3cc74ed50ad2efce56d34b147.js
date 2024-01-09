@@ -447,6 +447,7 @@ Module["MindARImage"] = {
             this.memory.targetMatrixPtrs[i] = _malloc(16 * 4);
         }
 
+        let frameNumber = 0;
         const drawWebcamTexture = () => {
             if (this.video === null) {
                 console.log(`MinARImage -> drawWebcamTexture -> stop`);
