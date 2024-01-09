@@ -409,8 +409,8 @@ Module["MindARImage"] = {
                         console.log(`MindARImage -> startVideo -> loadedmetadata`);
                         
                         video.play();
-                        video.width = this.video.videoWidth;
-                        video.height = this.video.videoHeight;
+                        video.width = video.videoWidth;
+                        video.height = video.videoHeight;
                         this.video = video;
                         resolve();
                     });
