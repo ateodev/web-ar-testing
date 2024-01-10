@@ -23,7 +23,8 @@
 
         document.body.style.textAlign = "left";
 
-        screen.orientation.lock("portrait-primary");
+        screen.orientation.lock("portrait");
+        
       }
 
       function onResize () {
@@ -40,9 +41,9 @@
       onResize();
 
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/1f408285d49544e4b40ef87e8cabaf47.data",
+        dataUrl: "Build/edd9f7d1b3eadff17c23fc9d133ff615.data",
         frameworkUrl: "Build/3ecce5a8e9a93f1ff5ccf51826214d64.js",
-        codeUrl: "Build/22dacc60352148fe9c509af61948915c.wasm",
+        codeUrl: "Build/73b9ac89272a7298ea49055e33fc01f0.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Ateo GmbH",
         productName: "app",
