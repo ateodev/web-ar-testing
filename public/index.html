@@ -37,7 +37,7 @@
       });
       onResize();
 
-      createUnityInstance(document.querySelector("#unity-canvas"), {
+      window.unityInstance = createUnityInstance(document.querySelector("#unity-canvas"), {
         dataUrl: "Build/cea5e8755319f479a6c0177ec757002b.data.unityweb",
         frameworkUrl: "Build/efc573cee3cf01519f464ecb303d236c.js.unityweb",
         codeUrl: "Build/46204acb6ae300177d7c3bf67833fe17.wasm.unityweb",
