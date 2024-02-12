@@ -51,7 +51,9 @@
         // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
       }
 
-      window.unityInstance = createUnityInstance(unityCanvas, options);
+      createUnityInstance(unityCanvas, options).then(unityInstance => {
+        window.unityInstance = unityInstance
+      })
     </script>
   </body>
 </html>
