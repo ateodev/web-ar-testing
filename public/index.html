@@ -37,7 +37,8 @@
       });
       onResize();
 
-      window.unityInstance = createUnityInstance(document.querySelector("#unity-canvas"), {
+      const unityCanvas = window.UnityCanvas = document.querySelector("#unity-canvas")
+      const options = {
         dataUrl: "Build/cea5e8755319f479a6c0177ec757002b.data.unityweb",
         frameworkUrl: "Build/efc573cee3cf01519f464ecb303d236c.js.unityweb",
         codeUrl: "Build/46204acb6ae300177d7c3bf67833fe17.wasm.unityweb",
@@ -48,7 +49,9 @@
         productVersion: "0.1",
         // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
         // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
-      });
+      }
+
+      window.unityInstance = createUnityInstance(unityCanvas, options);
     </script>
   </body>
 </html>
