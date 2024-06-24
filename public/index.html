@@ -7,7 +7,7 @@
   </head>
   <body style="text-align: center; padding: 0; border: 0; margin: 0; overflow: hidden;">
     <canvas id="unity-canvas" style="width: 100%; height: 100%; background: #231F20"></canvas>
-    <script src="Build/2024-05-08.loader.js"></script>
+    <script src="Build/Bernina Express Ar.loader.js"></script>
     <script>
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
@@ -38,13 +38,13 @@
       onResize();
 
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/1f603fe3e5b1f7260063e2a96de8f550.data.unityweb",
+        dataUrl: "Build/2a5b3cf7f5393c2388994d209d1b2227.data.unityweb",
         frameworkUrl: "Build/5a1e6fc249458b43eb6b9648bdb0fcb9.js.unityweb",
-        codeUrl: "Build/c65e043a37aef3552b4114a277082c7e.wasm.unityweb",
+        codeUrl: "Build/842a000f642f10e0d3eacb50596bd754.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "Ateo GmbH",
         productName: "app",
-        productVersion: "0.17",
+        productVersion: "0.18",
         // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
         // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
       });
